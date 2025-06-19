@@ -1,0 +1,4 @@
+id,address,sale_date,sale_price,property_type,bedrooms,bathrooms,sqft,lot_size,distance_miles
+101,124 Main St,2023-01-15,550000,Single Family,3,2,1750,4800,0.1
+102,200 Elm St,2023-02-20,520000,Single Family,3,1.5,1900,5200,0.5
+103,300 Pine Rd,2023-03-10,580000,Single Family,4,2.5,2100,6000,1.2
