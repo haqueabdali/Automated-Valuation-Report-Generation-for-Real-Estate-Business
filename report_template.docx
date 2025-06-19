@@ -1,0 +1,35 @@
+{company_name}
+VALUATION REPORT
+{report_date}
+
+PROPERTY DETAILS
+Address: {property.address}
+City: {property.city}
+State: {property.state}
+Zip Code: {property.zip_code}
+Property Type: {property.property_type}
+Bedrooms: {property.bedrooms}
+Bathrooms: {property.bathrooms}
+Square Footage: {property.sqft}
+Lot Size: {property.lot_size}
+Year Built: {property.year_build}
+
+VALUATION SUMMARY
+Primary Valuation Method: {valuation.primary_method}
+Estimated Value: {valuation.primary_value}
+Confidence Level: {valuation.primary_confidence}
+
+{% if valuation.secondary_methods %}
+OTHER VALUATION APPROACHES
+{% for method in valuation.secondary_methods %}
+- {method.method}: {method.value} (Confidence: {method.confidence})
+{% endfor %}
+{% endif %}
+
+FINAL VALUATION
+{valuation.final_value}
+
+{% if charts.sales_comparison %}
+COMPARABLE SALES ANALYSIS
+{{ charts.sales_comparison }}
+{% endif %}
