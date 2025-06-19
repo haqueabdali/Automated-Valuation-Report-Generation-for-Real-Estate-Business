@@ -64,17 +64,24 @@ python main.py <property_id> --method income_approach
 ## Project Structure
 
 ```
-real-estate-valuation/
-├── data/                   # Property and comparable sales data
-├── templates/              # Report templates
-├── outputs/                # Generated reports
-├── config.py               # Configuration settings
-├── data_processor.py       # Data loading and processing
-├── valuation_calculator.py # Valuation calculations
-├── report_generator.py     # Report generation
-├── main.py                 # Main execution script
-└── README.md               # This file
-```
+Automated-Valuation-Report-Generation-for-Real-Estate-Business/
+│
+├── data/
+│   ├── property_data.csv         # Sample property data
+│   └── comparable_sales.csv      # Comparable sales data
+│
+├── templates/
+│   └── report_template.docx      # Word template for reports
+│
+├── outputs/
+│   └── reports/                  # Generated reports will be saved here
+│
+├── config.py                     # Configuration settings
+├── data_processor.py             # Data loading and processing
+├── valuation_calculator.py       # Valuation calculations
+├── report_generator.py           # Report generation
+├── main.py                       # Main execution script
+└── requirements.txt              # Dependencies
 
 ## Customization
 
