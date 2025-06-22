@@ -1,10 +1,10 @@
 import os
 from pathlib import Path
 
-# Base directory
-BASE_DIR = Path(__file__).parent
+# Base directory - now using proper Path conversion
+BASE_DIR = Path(__file__).parent.resolve()
 
-# Path configurations
+# Path configurations using proper path joining
 DATA_DIR = BASE_DIR / "data"
 TEMPLATE_DIR = BASE_DIR / "templates"
 OUTPUT_DIR = BASE_DIR / "outputs" / "reports"
