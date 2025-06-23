@@ -3,6 +3,8 @@ from valuation_calculator import ValuationCalculator
 from report_generator import ReportGenerator
 from config import DEFAULT_METHOD, VALUATION_METHODS
 import argparse
+import matplotlib
+matplotlib.use('Agg')  
 import sys
 
 def parse_arguments():
@@ -63,6 +65,9 @@ def main():
         
         # Get property details
         property_details = data_processor.get_property_details(args.property_id)
+        """print(f"Debug - Looking for ID: {args.property_id} (type: {type(args.property_id)})")
+            print(f"Debug - Loaded property data IDs: {data_processor.property_data['id'].tolist()}")"""
+
         if not property_details:
             print(f"Error: Property with ID {args.property_id} not found")
             sys.exit(1)
