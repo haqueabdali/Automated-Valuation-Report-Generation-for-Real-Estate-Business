@@ -2,9 +2,11 @@ from data_processor import DataProcessor
 from valuation_calculator import ValuationCalculator
 from report_generator import ReportGenerator
 from config import DEFAULT_METHOD, VALUATION_METHODS
-import argparse
+from docx import Document
+from pathlib import Path
 import matplotlib
-matplotlib.use('Agg')  
+matplotlib.use('Agg')
+import argparse  
 import sys
 
 def parse_arguments():
@@ -54,6 +56,27 @@ def parse_arguments():
         print(f"Unexpected error: {str(e)}")
         sys.exit(1)
 
+# Create templates directory if it doesn't exist
+template_dir = Path("templates")
+template_dir.mkdir(exist_ok=True)
+
+# Create a brand new valid Word document
+doc = Document()
+
+# Add basic structure with placeholders
+doc.add_heading("VALUATION REPORT", level=1)
+doc.add_paragraph("Company: {company_name}")
+doc.add_paragraph("Date: {report_date}")
+doc.add_heading("PROPERTY DETAILS", level=2)
+doc.add_paragraph("Address: {property.address}")
+doc.add_paragraph("City: {property.city}")
+doc.add_paragraph("State: {property.state}")
+doc.add_paragraph("Type: {property.property_type}")
+
+# Save the document
+template_path = template_dir / "report_template.docx"
+doc.save(template_path)
+print(f"Created new valid template at: {template_path}")
 def main():
     args = parse_arguments()
     

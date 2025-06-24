@@ -8,6 +8,9 @@ BASE_DIR = Path(__file__).parent.resolve()
 DATA_DIR = BASE_DIR / "data"
 TEMPLATE_DIR = BASE_DIR / "templates"
 OUTPUT_DIR = BASE_DIR / "outputs" / "reports"
+TEMPLATE_DIR = BASE_DIR / "templates"
+REPORT_TEMPLATE = TEMPLATE_DIR / "report_template.docx"
+DATA_DIR = BASE_DIR / "data"
 
 # Create directories if they don't exist
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
