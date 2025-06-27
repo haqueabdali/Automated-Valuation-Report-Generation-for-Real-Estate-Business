@@ -1,7 +1,7 @@
 # File: verify_template.py
 from zipfile import ZipFile
 from pathlib import Path
-from config import REPORT_TEMPLATE  # Import from your config
+from src.config import REPORT_TEMPLATE  # Import from your config
 
 def verify_template():
     """Verify the Word template is valid before report generation"""

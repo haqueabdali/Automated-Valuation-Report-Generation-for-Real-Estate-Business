@@ -1,13 +1,47 @@
 import pandas as pd
 import os
-from config import PROPERTY_DATA_FILE, COMPARABLE_SALES_FILE
+from src.config import PROPERTY_DATA_FILE, COMPARABLE_SALES_FILE
 
 class DataProcessor:
     def __init__(self):
         self.property_data = None
         self.comparable_sales = None
-        
-    def load_data(self):
+    
+    def load_data_from_csv(self, csv_path):
+        try:
+            self.property_data = pd.read_csv(csv_path)
+            return True
+        except Exception as e:
+            print(f"CSV load error: {str(e)}")
+            return False
+    
+    def scrape_property_data(self, urls):
+        from web_scraping.scrapers import scrape_zillow, scrape_redfin
+        from web_scraping.data_mapper import map_to_model
+    
+        properties = []
+        for url in urls:
+            if 'zillow' in url:
+                scraped = scrape_zillow(url)
+                if scraped:
+                    properties.append(map_to_model(scraped, 'Zillow'))
+            elif 'redfin' in url:
+                scraped = scrape_redfin(url)
+                if scraped:
+                    properties.append(map_to_model(scraped, 'Redfin'))
+    
+        if properties:
+            self.property_data = pd.DataFrame(properties)
+            return True
+        return False
+
+    def get_scraped_property_details(self):
+        if not self.property_data.empty:
+            return self.property_data.iloc[0].to_dict()
+        return None    
+    
+    
+    ### def load_data(self):
         """Load property and comparable sales data"""
         try:
             # Debug print to verify file paths
@@ -31,7 +65,7 @@ class DataProcessor:
             return True
         except Exception as e:
             print(f"Error loading data: {str(e)}")
-            return False
+            return False ###
     
     def get_property_details(self, property_id):
         """Get details for a specific property with robust type handling"""
