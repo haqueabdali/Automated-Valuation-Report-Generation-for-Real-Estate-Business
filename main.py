@@ -1,176 +1,159 @@
-from data_processor import DataProcessor
-from valuation_calculator import ValuationCalculator
-from report_generator import ReportGenerator
-from src.config import DEFAULT_METHOD, VALUATION_METHODS
-from docx import Document
-from pathlib import Path
-#from data_processing.data_loader import load_data
-from src.data_processing.data_loader import load_data
-from valuation_model.model import predict_valuation
-from report_generation.report_generator import generate_report
-import matplotlib
-import pandas as pd
-import argparse 
-matplotlib.use('Agg')
-# Add project root to Python path
-sys.path.append(str(Path(__file__).parent))
-
-from data_processing.data_loader import load_data 
+import argparse
 import sys
+import logging
+from pathlib import Path
+import matplotlib
+matplotlib.use('Agg')  # Set non-interactive backend
 sys.path.append(str(Path(__file__).parent))
+sys.path.append(str(Path(__file__).parent / "src"))
+
+# Local imports
+from src.config import (
+    DEFAULT_METHOD,
+    VALUATION_METHODS,
+    COMPANY_NAME,
+    REPORT_TEMPLATE,
+    LOG_FILE,
+    LOG_LEVEL,
+    PROPERTY_DATA_FILE,
+    COMPARABLE_SALES_FILE
+)
+from src.data_processing.data_processor import DataProcessor
+from src.valuation_calculator import ValuationCalculator
+from src.report_generation.report_generator import ReportGenerator
+
+# Configure logging
+logging.basicConfig(
+    level=LOG_LEVEL,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    filename=LOG_FILE
+)
+logger = logging.getLogger(__name__)
 
 def parse_arguments():
-    """Improved argument parsing with custom error handling"""
+    """Configure argument parser with enhanced validation"""
     parser = argparse.ArgumentParser(
-        description="Real Estate Valuation Report Generator",
-        add_help=False  # We'll add custom help handling
+        description='Automated Real Estate Valuation Report Generator',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     
-    parser = argparse.ArgumentParser(description='Property Valuation Report Generator')
-    parser.add_argument('--csv', type=str, help='Path to CSV input file')
-    parser.add_argument('--urls', nargs='+', help='Property URLs to scrape')
-    parser.add_argument('--property-id', type=int, help='Property ID for database lookup')
-    parser.add_argument('--method', choices=VALUATION_METHODS, default='hybrid',
-                      help='Valuation method to use')
-    parser.add_argument('--all-methods', action='store_true',
-                      help='Run all valuation methods')
-    try:
-        args = parser.parse_args()
-        return args
-    except argparse.ArgumentError as e:
-        print(f"Error: {str(e)}")
-        parser.print_help()
-        sys.exit(2)
-    except Exception as e:
-        print(f"Unexpected error: {str(e)}")
-        sys.exit(1)
-        
+    # Input methods (mutually exclusive and required)
+    input_group = parser.add_mutually_exclusive_group(required=True)
+    input_group.add_argument(
+        '--csv', 
+        type=str,
+        help='Path to CSV file containing property data'
+    )
+    input_group.add_argument(
+        '--urls', 
+        nargs='+',
+        help='List of property URLs to scrape data from'
+    )
+    input_group.add_argument(
+        '--property-id', 
+        type=int,
+        help='Database property ID to lookup'
+    )
+    
+    # Valuation parameters
+    parser.add_argument(
+        '--method', 
+        choices=VALUATION_METHODS, 
+        default=DEFAULT_METHOD,
+        help='Valuation methodology to apply'
+    )
+    parser.add_argument(
+        '--all-methods', 
+        action='store_true',
+        help='Execute all valuation methods and compare results'
+    )
+    
     return parser.parse_args()
 
-    # # Required arguments
-    # required = parser.add_argument_group('required arguments')
-    # required.add_argument(
-    #     'property_id',
-    #     type=str,
-    #     help="ID of the property to evaluate"
-    # )
-    
-    # # Optional arguments
-    # optional = parser.add_argument_group('optional arguments')
-    # optional.add_argument(
-    #     '-m', '--method',
-    #     type=str,
-    #     default=DEFAULT_METHOD,
-    #     choices=VALUATION_METHODS,
-    #     help=f"Valuation method to use (default: {DEFAULT_METHOD})"
-    # )
-    # optional.add_argument(
-    #     '-a', '--all-methods',
-    #     action='store_true',
-    #     help="Run all valuation methods and include in report"
-    # )
-    # optional.add_argument(
-    #     '-h', '--help',
-    #     action='help',
-    #     help="Show this help message and exit"
-    # )
-    
-    # Custom error handling
+def load_property_data(args, data_processor):
+    """Handle data loading from different sources with validation"""
+    try:
+        if args.csv:
+            logger.info(f"Loading data from CSV: {args.csv}")
+            if not data_processor.load_data_from_csv(args.csv):
+                raise ValueError("Failed to load CSV data")
+            return data_processor.get_property_details(args.property_id)
+            
+        elif args.urls:
+            logger.info(f"Scraping data from URLs: {args.urls}")
+            if not data_processor.scrape_property_data(args.urls):
+                raise ValueError("Failed to scrape property data")
+            return data_processor.get_scraped_property_details()
+            
+        else:
+            logger.info(f"Loading property ID: {args.property_id}")
+            if not data_processor.load_data(PROPERTY_DATA_FILE, COMPARABLE_SALES_FILE):
+                raise ValueError("Failed to load default data")
+            return data_processor.get_property_details(args.property_id)
+            
+    except Exception as e:
+        logger.error(f"Data loading failed: {str(e)}")
+        raise
 
-        
-# Create templates directory if it doesn't exist
-template_dir = Path("templates")
-template_dir.mkdir(exist_ok=True)
-
-# Create a brand new valid Word document
-doc = Document()
-
-# Add basic structure with placeholders
-doc.add_heading("VALUATION REPORT", level=1)
-doc.add_paragraph("Company: {company_name}")
-doc.add_paragraph("Date: {report_date}")
-doc.add_heading("PROPERTY DETAILS", level=2)
-doc.add_paragraph("Address: {property.address}")
-doc.add_paragraph("City: {property.city}")
-doc.add_paragraph("State: {property.state}")
-doc.add_paragraph("Type: {property.property_type}")
-
-# Save the document
-template_path = template_dir / "report_template.docx"
-doc.save(template_path)
-print(f"Created new valid template at: {template_path}")
+def calculate_valuations(args, property_details, calculator):
+    """Execute valuation calculations with error handling"""
+    try:
+        if args.all_methods:
+            logger.info("Running all valuation methods...")
+            results = []
+            for method in VALUATION_METHODS:
+                logger.info(f"Calculating {method} valuation...")
+                result = calculator.calculate_valuation(property_details, method)
+                if result:
+                    results.append(result)
+            return sorted(results, key=lambda x: x.confidence, reverse=True)
+        else:
+            logger.info(f"Calculating valuation using {args.method} method...")
+            return calculator.calculate_valuation(property_details, args.method)
+    except Exception as e:
+        logger.error(f"Valuation calculation failed: {str(e)}")
+        raise
 
 def main():
-    args = parse_arguments()
-    
     try:
-        # Initialize components
+        args = parse_arguments()
+        logger.info("Initializing valuation system components")
+        
+        # Initialize system components
         data_processor = DataProcessor()
         valuation_calculator = ValuationCalculator(data_processor)
-        report_generator = ReportGenerator()
+        report_generator = ReportGenerator(REPORT_TEMPLATE, COMPANY_NAME)
         
-        # Load and validate data - MODIFIED SECTION
-        if args.csv:
-            print(f"Loading data from CSV: {args.csv}")
-            if not data_processor.load_data_from_csv(args.csv):
-                print("Failed to load CSV data")
-                return
-        elif args.urls:
-            print(f"Scraping data from URLs: {args.urls}")
-            scraped_data = data_processor.scrape_property_data(args.urls)
-            if not scraped_data:
-                print("Failed to scrape property data")
-                return
-        else:
-            if not data_processor.load_data():
-                print("Failed to load default data")
-                return
-    
-        # Get property details
-        if args.urls:
-            # Use first scraped property if URLs provided
-            property_details = data_processor.get_scraped_property_details()
-        
-        else:
-            property_details = data_processor.get_property_details(args.property_id)
-        
-        if not args.urls:
-            error_msg += f" with ID {args.property_id}"    
-        
+        # Data loading phase
+        property_details = load_property_data(args, data_processor)
         if not property_details:
-            error_msg = f"No property found"
+            error_msg = "No property found"
             if not args.urls:
                 error_msg += f" with ID {args.property_id}"
-            print(error_msg)
-            sys.exit(1)
+            raise ValueError(error_msg)
         
-        # Calculate valuation
-        if args.all_methods:
-            print("Running all valuation methods...")
-            valuation_results = []
-            for method in VALUATION_METHODS:
-                print(f"Calculating {method}...")
-                result = valuation_calculator.calculate_valuation(property_details, method)
-                if result:
-                    valuation_results.append(result)
-            
-            # Sort by confidence (highest first)
-            valuation_results.sort(key=lambda x: x.confidence, reverse=True)
-        else:
-            print(f"Calculating valuation using {args.method} method...")
-            valuation_results = valuation_calculator.calculate_valuation(property_details, args.method)
-    
-        # Generate report
+        # Valuation calculation phase
+        valuation_results = calculate_valuations(args, property_details, valuation_calculator)
+        if not valuation_results:
+            raise ValueError("No valid valuation results obtained")
+        
+        # Report generation phase
+        data_source = "Web Scraping" if args.urls else ("CSV" if args.csv else "Database")
         report_path = report_generator.generate_report(
-            property_details, 
-            valuation_results,
-            data_source="Web Scraping" if args.urls else ("CSV" if args.csv else "Database")
+            property_details=property_details,
+            valuation_results=valuation_results,
+            data_source=data_source
         )
-        print(f"\nSuccessfully generated valuation report:\n{report_path}")
-    
+        
+        logger.info(f"Successfully generated valuation report: {report_path}")
+        return 0
+        
+    except argparse.ArgumentError as e:
+        logger.error(f"Argument error: {str(e)}")
+        return 1
     except Exception as e:
-        print(f"\nError during report generation: {str(e)}", file=sys.stderr)
-        sys.exit(1)
+        logger.error(f"Unexpected error: {str(e)}")
+        return 1
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
