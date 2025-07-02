@@ -5,6 +5,7 @@ from typing import Dict, List, Optional, Union, Any
 PROPERTY_DATA_FILE = "data/property_data.csv"
 COMPARABLE_SALES_FILE = "data/comparable_sales.csv"
 from src.config import PROPERTY_DATA_FILE, COMPARABLE_SALES_FILE
+from src.web_scraping.scraper_manager import property_scraper
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -66,24 +67,19 @@ class DataProcessor:
     def scrape_property_data(self, urls: List[str]) -> bool:
         """Scrape property data from URLs with comprehensive error handling"""
         properties = []
-        for url in urls:
-            try:
-                if 'zillow' in url:
-                    scraped = scrape_zillow(url)
-                    if scraped:
-                        properties.append(map_to_model(scraped))
-                elif 'redfin' in url:
-                    scraped = scrape_redfin(url)
-                    if scraped:
-                        properties.append(map_to_model(scraped))
-            except Exception as e:
-                logger.error(f"Error scraping {url}: {str(e)}")
-                continue
+        def scrape_property_data(self, urls: list) -> bool:
+            """Scrape property data from URLs"""
+            properties = []
+            for url in urls:
+                scraped_data = property_scraper(url)
+                if scraped_data:
+                    properties.append(scraped_data)
         
-        if properties:
-            self.property_data = pd.DataFrame(properties)
-            logger.info(f"Successfully scraped {len(properties)} properties")
-            return True
+            if properties:
+                self.property_data = pd.DataFrame(properties)
+                logger.info(f"Scraped {len(properties)} properties")
+                return True
+            return False
         
         logger.error("No valid properties scraped from URLs")
         return False

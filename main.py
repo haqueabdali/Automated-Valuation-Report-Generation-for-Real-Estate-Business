@@ -3,10 +3,11 @@ import sys
 import logging
 from pathlib import Path
 import matplotlib
+from src.web_scraping.scrapers import ZillowScraper
 matplotlib.use('Agg')  # Set non-interactive backend
 sys.path.append(str(Path(__file__).parent))
 sys.path.append(str(Path(__file__).parent / "src"))
-
+# For imports from config.py (assuming config.py is in src/)
 # Local imports
 from src.config import (
     DEFAULT_METHOD,
@@ -21,7 +22,8 @@ from src.config import (
 from src.data_processing.data_processor import DataProcessor
 from src.valuation_calculator import ValuationCalculator
 from src.report_generation.report_generator import ReportGenerator
-
+from src.web_scraping.scraper_manager import property_scraper
+from src.report_generation.docx_generation import generate_report
 # Configure logging
 logging.basicConfig(
     level=LOG_LEVEL,
@@ -115,6 +117,14 @@ def calculate_valuations(args, property_details, calculator):
         raise
 
 def main():
+    
+    zillow_url = input("Enter Zillow property URL: ")
+    try:
+        generate_report(zillow_url)
+        print("Report generated successfully!")
+    except Exception as e:
+        print(f"Error: {str(e)}")
+    
     try:
         args = parse_arguments()
         logger.info("Initializing valuation system components")
@@ -138,6 +148,7 @@ def main():
             raise ValueError("No valid valuation results obtained")
         
         # Report generation phase
+        
         data_source = "Web Scraping" if args.urls else ("CSV" if args.csv else "Database")
         report_path = report_generator.generate_report(
             property_details=property_details,

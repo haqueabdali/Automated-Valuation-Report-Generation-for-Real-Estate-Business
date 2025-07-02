@@ -180,11 +180,11 @@ class ReportGenerator:
             
             ax.bar(x, sale_prices, bar_width, label='Original Price', color='#1f77b4')
             ax.bar([i + bar_width for i in x], adjusted_prices, bar_width, 
-                  label='Adjusted Price', color='#ff7f0e')
+                    label='Adjusted Price', color='#ff7f0e')
             
             # Add property line
-            ax.axhline(y=primary.value, color='r', linestyle='--', 
-                      label='Subject Property Value')
+            ax.axhline(y=primary.value, color='r', linestyle ='--', 
+                        label='Subject Property Value')
             
             # Format chart
             ax.set_xlabel('Comparable Properties')
